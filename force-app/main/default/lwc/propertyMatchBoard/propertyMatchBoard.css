@@ -1,0 +1,38 @@
+.card {
+    padding: 10px;
+    margin: 8px;
+    border-radius: 10px;
+    background: white;
+}
+
+.hot-border { border-left: 6px solid red; }
+.warm-border { border-left: 6px solid orange; }
+.cold-border { border-left: 6px solid gray; }
+
+.image-box {
+    height: 100px;
+    background: #f3f3f3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+}
+
+.score-wrapper { position: relative; }
+.score-badge { background: #eee; padding: 5px; border-radius: 5px; cursor: pointer; }
+
+.tooltip {
+    display: none;
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    padding: 10px;
+    z-index: 10;
+}
+
+.score-wrapper:hover .tooltip {
+    display: block;
+}
+
+.actions { display: flex; gap: 5px; margin-top: 10px; }
+.history { font-size: 12px; color: gray; }

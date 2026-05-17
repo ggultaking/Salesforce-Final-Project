@@ -1,0 +1,83 @@
+<template>
+    <lightning-card title="Property Matches">
+
+        <!-- FILTER BAR -->
+        <div class="filter-bar slds-grid slds-wrap slds-p-around_small">
+
+            <lightning-input type="number" label="Min Price" onchange={handleMinPrice}></lightning-input>
+            <lightning-input type="number" label="Max Price" onchange={handleMaxPrice}></lightning-input>
+            <lightning-input type="number" label="Min Score" onchange={handleMinScore}></lightning-input>
+
+            <lightning-input type="checkbox" label="Hot Only" onchange={handleHotOnly}></lightning-input>
+
+            <lightning-button label="Refresh Matches" variant="brand" onclick={handleRefresh}></lightning-button>
+
+        </div>
+
+        <!-- GRID -->
+        <div class="slds-grid slds-wrap">
+
+            <template for:each={matches} for:item="item">
+
+                <div key={item.propertyMatchId} class="slds-col slds-size_1-of-3">
+
+                    <div class={item.borderClass}>
+
+                        <!-- IMAGE -->
+                        <div class="image-box">🏠</div>
+
+                        <!-- BASIC INFO -->
+                        <div class="title">{item.address}</div>
+                        <div>${item.price}</div>
+
+                        <div>{item.beds} bed | {item.baths} bath | {item.area} sqft</div>
+                        <div>DOM: {item.daysOnMarket}</div>
+
+                        <!-- SCORE -->
+                        <div class="score-wrapper">
+
+                            <div class="score-badge">
+                                {item.matchScore}%
+                            </div>
+
+                            <!-- TOOLTIP BREAKDOWN -->
+                            <div class="tooltip">
+
+                                <div>Match Breakdown</div>
+
+                                <div>Area: {item.breakdown.areaScore}/25</div>
+                                <div>Budget: {item.breakdown.budgetScore}/25</div>
+                                <div>Features: {item.breakdown.featuresScore}/25</div>
+                                <div>Location: {item.breakdown.locationScore}/25</div>
+                                <div>Rooms: {item.breakdown.roomsScore}/25</div>
+                                <div>Type: {item.breakdown.typeScore}/25</div>
+
+                            </div>
+
+                        </div>
+
+                        <!-- ACTIONS -->
+                        <div class="actions">
+
+                            <lightning-button label="Schedule" data-id={item.propertyId} onclick={openSchedule}></lightning-button>
+
+                            <lightning-button label="Map" onclick={openMap}></lightning-button>
+
+                            <lightning-button label="Not Interested" data-id={item.propertyMatchId} onclick={markNotInterested}></lightning-button>
+
+                        </div>
+
+                        <div class="history">
+                            Viewed {item.showingCount}x
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </template>
+
+        </div>
+
+    </lightning-card>
+</template>
