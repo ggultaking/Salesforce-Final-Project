@@ -1,0 +1,74 @@
+<template>
+    <lightning-card title="Mortgage Calculator">
+
+        <!-- INPUT PANEL -->
+        <div class="slds-grid slds-wrap slds-p-around_small">
+
+            <!-- HOME PRICE -->
+            <div class="slds-col slds-size_1-of-2">
+                <lightning-input
+                    type="number"
+                    label="Home Price"
+                    value={homePrice}
+                    onchange={handleHomePrice}>
+                </lightning-input>
+            </div>
+
+            <!-- DOWN PAYMENT % -->
+            <div class="slds-col slds-size_1-of-2">
+                <lightning-input
+                    type="number"
+                    label="Down Payment %"
+                    value={downPaymentPercent}
+                    onchange={handleDownPaymentPercent}>
+                </lightning-input>
+            </div>
+
+            <!-- INTEREST -->
+            <div class="slds-col slds-size_1-of-2">
+                <lightning-input
+                    type="number"
+                    label="Interest Rate %"
+                    value={interestRate}
+                    onchange={handleInterestRate}>
+                </lightning-input>
+            </div>
+
+            <!-- LOAN TERM -->
+            <div class="slds-col slds-size_1-of-2">
+                <lightning-button-group>
+                    <lightning-button label="15Y" data-year="15" onclick={setTerm}></lightning-button>
+                    <lightning-button label="20Y" data-year="20" onclick={setTerm}></lightning-button>
+                    <lightning-button label="25Y" data-year="25" onclick={setTerm}></lightning-button>
+                    <lightning-button label="30Y" data-year="30" onclick={setTerm}></lightning-button>
+                </lightning-button-group>
+            </div>
+
+        </div>
+
+        <!-- OUTPUT -->
+        <div class="result-box slds-p-around_small">
+
+            <h2 class="monthly">
+                Monthly Payment: ${monthlyPayment}
+            </h2>
+
+            <p>Principal: ${principal}</p>
+            <p>Interest: ${interest}</p>
+
+            <!-- LTV -->
+            <div class={ltvClass}>
+                LTV: {ltv}%
+            </div>
+
+        </div>
+
+        <!-- ACTION -->
+        <lightning-button
+            label="Apply for Mortgage"
+            variant="brand"
+            onclick={applyMortgage}>
+        </lightning-button>
+
+    </lightning-card>
+</template>
