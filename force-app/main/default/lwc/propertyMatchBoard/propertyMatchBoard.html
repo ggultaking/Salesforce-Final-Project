@@ -1,83 +1,148 @@
 <template>
     <lightning-card title="Property Matches">
 
+        <!-- LOADING -->
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </template>
+
         <!-- FILTER BAR -->
-        <div class="filter-bar slds-grid slds-wrap slds-p-around_small">
+        <div class="slds-grid slds-wrap slds-p-around_small">
 
-            <lightning-input type="number" label="Min Price" onchange={handleMinPrice}></lightning-input>
-            <lightning-input type="number" label="Max Price" onchange={handleMaxPrice}></lightning-input>
-            <lightning-input type="number" label="Min Score" onchange={handleMinScore}></lightning-input>
+            <div class="slds-col slds-size_1-of-4">
+                <lightning-input type="number" label="Min Price" onchange={handleMinPrice}></lightning-input>
+            </div>
 
-            <lightning-input type="checkbox" label="Hot Only" onchange={handleHotOnly}></lightning-input>
+            <div class="slds-col slds-size_1-of-4">
+                <lightning-input type="number" label="Max Price" onchange={handleMaxPrice}></lightning-input>
+            </div>
 
-            <lightning-button label="Refresh Matches" variant="brand" onclick={handleRefresh}></lightning-button>
+            <div class="slds-col slds-size_1-of-4">
+                <lightning-input type="number" label="Min Score" onchange={handleMinScore}></lightning-input>
+            </div>
+
+            <div class="slds-col slds-size_1-of-4">
+                <lightning-input type="checkbox" label="Hot Only" onchange={handleHotOnly}></lightning-input>
+            </div>
 
         </div>
 
+        <lightning-button
+            label="Refresh Matches"
+            class="slds-m-left_small"
+            onclick={handleRefresh}>
+        </lightning-button>
+
         <!-- GRID -->
-        <div class="slds-grid slds-wrap">
+        <div class="slds-grid slds-wrap slds-m-top_small">
 
             <template for:each={matches} for:item="item">
 
-                <div key={item.propertyMatchId} class="slds-col slds-size_1-of-3">
+                <div key={item.propertyMatchId}
+                     class="card slds-col slds-size_1-of-3">
 
                     <div class={item.borderClass}>
 
-                        <!-- IMAGE -->
-                        <div class="image-box">🏠</div>
+                        <!-- GAP 10 — PROPERTY IMAGE -->
+                        <img class="image"
+                             src={item.imageUrl}
+                             loading="lazy"/>
 
-                        <!-- BASIC INFO -->
                         <div class="title">{item.address}</div>
                         <div>${item.price}</div>
 
-                        <div>{item.beds} bed | {item.baths} bath | {item.area} sqft</div>
+                        <div>
+                            {item.beds} bed | {item.baths} bath | {item.area} sqft
+                        </div>
+
                         <div>DOM: {item.daysOnMarket}</div>
 
                         <!-- SCORE -->
-                        <div class="score-wrapper">
+                        <div class="score">{item.matchScore}%</div>
+                           <p>Viewed {item.viewedCount}x</p>
+                        <!-- GAP 7 — PROGRESS BARS -->
+                        <div class="progress-section">
 
-                            <div class="score-badge">
-                                {item.matchScore}%
-                            </div>
+                            <label>Budget</label>
+                            <lightning-progress-bar value={item.breakdown.budgetScore}></lightning-progress-bar>
 
-                            <!-- TOOLTIP BREAKDOWN -->
-                            <div class="tooltip">
+                            <label>Location</label>
+                            <lightning-progress-bar value={item.breakdown.locationScore}></lightning-progress-bar>
 
-                                <div>Match Breakdown</div>
+                            <label>Type</label>
+                            <lightning-progress-bar value={item.breakdown.typeScore}></lightning-progress-bar>
 
-                                <div>Area: {item.breakdown.areaScore}/25</div>
-                                <div>Budget: {item.breakdown.budgetScore}/25</div>
-                                <div>Features: {item.breakdown.featuresScore}/25</div>
-                                <div>Location: {item.breakdown.locationScore}/25</div>
-                                <div>Rooms: {item.breakdown.roomsScore}/25</div>
-                                <div>Type: {item.breakdown.typeScore}/25</div>
+                            <label>Rooms</label>
+                            <lightning-progress-bar value={item.breakdown.roomsScore}></lightning-progress-bar>
 
-                            </div>
+                            <label>Area</label>
+                            <lightning-progress-bar value={item.breakdown.areaScore}></lightning-progress-bar>
+
+                            <label>Features</label>
+                            <lightning-progress-bar value={item.breakdown.featuresScore}></lightning-progress-bar>
 
                         </div>
 
                         <!-- ACTIONS -->
                         <div class="actions">
 
-                            <lightning-button label="Schedule" data-id={item.propertyId} onclick={openSchedule}></lightning-button>
+                            <lightning-button
+                                label="Schedule"
+                                data-id={item.propertyId}
+                                onclick={openSchedule}>
+                            </lightning-button>
 
-                            <lightning-button label="Map" onclick={openMap}></lightning-button>
+                            <!-- GAP 8 -->
+                            <lightning-button
+                                label="Map"
+                                data-id={item.propertyId}
+                                onclick={openMap}>
+                            </lightning-button>
 
-                            <lightning-button label="Not Interested" data-id={item.propertyMatchId} onclick={markNotInterested}></lightning-button>
+                            <lightning-button
+                                label="Not Interested"
+                                data-id={item.propertyMatchId}
+                                onclick={markNotInterested}>
+                            </lightning-button>
 
-                        </div>
-
-                        <div class="history">
-                            Viewed {item.showingCount}x
                         </div>
 
                     </div>
-
                 </div>
 
             </template>
 
         </div>
+
+        <!-- GAP 9 — SCHEDULE MODAL -->
+        <template if:true={showScheduleModal}>
+            <section class="modal">
+
+                <div class="modal-content">
+
+                    <h2>Schedule Viewing</h2>
+
+                    <lightning-input
+                        type="datetime-local"
+                        label="Select Date & Time"
+                        onchange={handleDateChange}>
+                    </lightning-input>
+
+                    <div class="modal-actions">
+
+                        <lightning-button label="Cancel" onclick={closeModal}></lightning-button>
+
+                        <lightning-button variant="brand"
+                                          label="Save"
+                                          onclick={saveSchedule}>
+                        </lightning-button>
+
+                    </div>
+
+                </div>
+
+            </section>
+        </template>
 
     </lightning-card>
 </template>

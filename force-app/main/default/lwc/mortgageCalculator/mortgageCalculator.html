@@ -1,74 +1,111 @@
 <template>
-    <lightning-card title="Mortgage Calculator">
+<lightning-card title="Mortgage Engine">
 
-        <!-- INPUT PANEL -->
-        <div class="slds-grid slds-wrap slds-p-around_small">
+<lightning-tabset>
 
-            <!-- HOME PRICE -->
-            <div class="slds-col slds-size_1-of-2">
-                <lightning-input
-                    type="number"
-                    label="Home Price"
-                    value={homePrice}
-                    onchange={handleHomePrice}>
-                </lightning-input>
-            </div>
+    <!-- SUMMARY -->
+    <lightning-tab label="Summary">
+        <p>Monthly: {monthlyPayment}</p>
+        <p>Principal: {principal}</p>
+        <p>Interest: {interest}</p>
+        <p>LTV: {ltv}%</p>
+    </lightning-tab>
 
-            <!-- DOWN PAYMENT % -->
-            <div class="slds-col slds-size_1-of-2">
-                <lightning-input
-                    type="number"
-                    label="Down Payment %"
-                    value={downPaymentPercent}
-                    onchange={handleDownPaymentPercent}>
-                </lightning-input>
-            </div>
+    <!-- AMORTIZATION TABLE -->
+    <lightning-tab label="Amortization">
 
-            <!-- INTEREST -->
-            <div class="slds-col slds-size_1-of-2">
-                <lightning-input
-                    type="number"
-                    label="Interest Rate %"
-                    value={interestRate}
-                    onchange={handleInterestRate}>
-                </lightning-input>
-            </div>
+        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
 
-            <!-- LOAN TERM -->
-            <div class="slds-col slds-size_1-of-2">
-                <lightning-button-group>
-                    <lightning-button label="15Y" data-year="15" onclick={setTerm}></lightning-button>
-                    <lightning-button label="20Y" data-year="20" onclick={setTerm}></lightning-button>
-                    <lightning-button label="25Y" data-year="25" onclick={setTerm}></lightning-button>
-                    <lightning-button label="30Y" data-year="30" onclick={setTerm}></lightning-button>
-                </lightning-button-group>
-            </div>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Payment</th>
+                    <th>Interest</th>
+                    <th>Principal</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
 
-        </div>
+            <tbody>
+                <template for:each={amortization} for:item="a">
+                    <tr key={a.month}>
+                        <td>{a.month}</td>
+                        <td>{a.payment}</td>
+                        <td>{a.interest}</td>
+                        <td>{a.principal}</td>
+                        <td>{a.balance}</td>
+                    </tr>
+                </template>
+            </tbody>
 
-        <!-- OUTPUT -->
-        <div class="result-box slds-p-around_small">
+        </table>
 
-            <h2 class="monthly">
-                Monthly Payment: ${monthlyPayment}
-            </h2>
+    </lightning-tab>
 
-            <p>Principal: ${principal}</p>
-            <p>Interest: ${interest}</p>
+    <!-- AFFORDABILITY -->
+    <lightning-tab label="Affordability">
 
-            <!-- LTV -->
-            <div class={ltvClass}>
-                LTV: {ltv}%
-            </div>
+        <lightning-input
+            type="number"
+            name="income"
+            label="Income"
+            onchange={handleChange}>
+        </lightning-input>
 
-        </div>
+        <lightning-input
+            type="number"
+            name="debts"
+            label="Debts"
+            onchange={handleChange}>
+        </lightning-input>
 
-        <!-- ACTION -->
         <lightning-button
-            label="Apply for Mortgage"
+            label="Calculate Affordability"
+            onclick={calculateAffordability}>
+        </lightning-button>
+
+        <p>Max Home Price: {affordable}</p>
+
+        <lightning-button
+            label="Apply Mortgage"
             variant="brand"
             onclick={applyMortgage}>
         </lightning-button>
 
-    </lightning-card>
+    </lightning-tab>
+
+    <!-- CHART -->
+    <lightning-tab label="Chart">
+
+        <div class="chart-wrapper">
+
+            <template for:each={amortization} for:item="a">
+
+                <div key={a.month} class="chart-row">
+
+                    <div class="month">Month {a.month}</div>
+
+                    <div class="bar-container">
+
+                        <div class="principal-bar"
+                             style={a.principalStyle}>
+                        </div>
+
+                        <div class="interest-bar"
+                             style={a.interestStyle}>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </template>
+
+        </div>
+
+    </lightning-tab>
+
+</lightning-tabset>
+
+</lightning-card>
 </template>

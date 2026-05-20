@@ -1,0 +1,67 @@
+<template>
+    <lightning-card title="Transaction Pipeline">
+
+        <!-- FILTER -->
+        <lightning-input
+            type="text"
+            label="Search Address"
+            onchange={handleSearch}>
+        </lightning-input>
+
+        <div class="board">
+
+            <!-- SAFE LOOP (NO COMPUTED ACCESS) -->
+            <template for:each={groupedList} for:item="stageGroup">
+
+                <div key={stageGroup.stage}
+                     class="column"
+                     data-stage={stageGroup.stage}
+                     ondrop={drop}
+                     ondragover={allowDrop}>
+
+                    <h3>{stageGroup.stage}</h3>
+
+                    <template for:each={stageGroup.items} for:item="t">
+
+                        <div key={t.Id}
+                             class={t.cardClass}
+                             draggable="true"
+                             data-id={t.Id}
+                             ondragstart={dragStart}
+                             onclick={openDetails}>
+
+                            <p>{t.Property__r.Address__c}</p>
+                            <p>{t.Buyer__r.Name}</p>
+                            <p>${t.Offer__r.Offer_Amount__c}</p>
+
+                            <p>⏳ {t.daysLeft} days left</p>
+
+                        </div>
+
+                    </template>
+
+                </div>
+
+            </template>
+
+        </div>
+
+        <!-- SIDE PANEL -->
+        <template if:true={selectedTransaction}>
+            <div class="sidepanel">
+
+                <button onclick={closePanel}>X</button>
+
+                <h2>Transaction Details</h2>
+
+                <p>{selectedTransaction.Property__r.Address__c}</p>
+                <p>{selectedTransaction.Buyer__r.Name}</p>
+                <p>Status: {selectedTransaction.Status__c}</p>
+                <p>Sale Price: ${selectedTransaction.Sale_Price__c}</p>
+                <p>Closing Date: {selectedTransaction.Est_Closing_Date__c}</p>
+
+            </div>
+        </template>
+
+    </lightning-card>
+</template>

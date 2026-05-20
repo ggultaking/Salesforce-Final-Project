@@ -1,0 +1,54 @@
+.result-box {
+    margin-top: 15px;
+    background: #f4f6f9;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.monthly {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.green {
+    color: green;
+}
+
+.yellow {
+    color: orange;
+}
+
+.red {
+    color: red;
+}
+.chart-wrapper {
+    padding: 10px;
+}
+
+.chart-row {
+    margin-bottom: 10px;
+}
+
+.month {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.bar-container {
+    display: flex;
+    height: 10px;
+    width: 100%;
+    background: #eee;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.principal-bar {
+    background: #4caf50;
+    height: 100%;
+}
+
+.interest-bar {
+    background: #ff9800;
+    height: 100%;
+}
