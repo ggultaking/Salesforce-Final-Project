@@ -15,7 +15,7 @@ export default class PropertyMatchBoard extends LightningElement {
     minPrice;
     maxPrice;
     minScore;
-    hotOnly = false;
+    // hotOnly = false;
 
     isLoading = false;
 
@@ -26,8 +26,8 @@ export default class PropertyMatchBoard extends LightningElement {
         buyerId: '$recordId',
         minPrice: '$minPrice',
         maxPrice: '$maxPrice',
-        minScore: '$minScore',
-        hotOnly: '$hotOnly'
+        minScore: '$minScore'
+        // hotOnly: '$hotOnly'
     })
     wiredMatches(result) {
         this.wiredResult = result;
@@ -50,7 +50,7 @@ export default class PropertyMatchBoard extends LightningElement {
     handleMinPrice(e) { this.minPrice = e.target.value; }
     handleMaxPrice(e) { this.maxPrice = e.target.value; }
     handleMinScore(e) { this.minScore = e.target.value; }
-    handleHotOnly(e) { this.hotOnly = e.target.checked; }
+    // handleHotOnly(e) { this.hotOnly = e.target.checked; }
 
     // =========================
     // REFRESH
@@ -149,11 +149,11 @@ openSchedule(event) {
     // =========================
     // BORDER LOGIC
     // =========================
-    getBorder(level) {
-        if (level === 'Hot') return 'hot-border';
-        if (level === 'Warm') return 'warm-border';
-        return 'cold-border';
-    }
+    // getBorder(level) {
+    //     if (level === 'Hot') return 'hot-border';
+    //     if (level === 'Warm') return 'warm-border';
+    //     return 'cold-border';
+    // }
 
     // =========================
     // TOAST

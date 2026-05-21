@@ -61,15 +61,17 @@ public with sharing class PropertyMatchingService {
         // =========================
         // EXISTING MATCHES (FOR UPDATE)
         // =========================
-        Map<String, Property_Match__c> existingMap = new Map<String, Property_Match__c>();
+Map<String, Property_Match__c> existingMap = new Map<String, Property_Match__c>();
 
-        for (Property_Match__c m : [
-            SELECT Id, Buyer__c, Property__c
-            FROM Property_Match__c
-            WHERE Buyer__c IN :buyerIds
-        ]) {
-            existingMap.put(m.Buyer__c + '-' + m.Property__c, m);
-        }
+for (Property_Match__c m : [
+    SELECT Id, Buyer__c, Property__c
+    FROM Property_Match__c
+    WHERE Buyer__c IN :buyerIds
+]) {
+
+    String key = String.valueOf(m.Buyer__c) + '-' + String.valueOf(m.Property__c);
+    existingMap.put(key, m);
+}
 
         List<Property_Match__c> toInsert = new List<Property_Match__c>();
         List<Property_Match__c> toUpdate = new List<Property_Match__c>();
@@ -84,49 +86,50 @@ public with sharing class PropertyMatchingService {
 
             for (Property__c prop : properties) {
 
-                String key = buyerId + '-' + prop.Id;
+            String key = String.valueOf(buyerId) + '-' + String.valueOf(prop.Id);
 
                 ScoreDTO score = calculateMatchScore(pref, prop);
 
                 // =========================
                 // UPDATE EXISTING
                 // =========================
-                if (existingMap.containsKey(key)) {
+           Property_Match__c existing = existingMap.get(key);
 
-                    Property_Match__c existing = existingMap.get(key);
+if (existing != null) {
 
-                    existing.Match_Score__c = score.total;
-                    existing.Budget_Score__c = score.budgetScore;
-                    existing.Location_Score__c = score.locationScore;
-                    existing.Type_Score__c = score.typeScore;
-                    existing.Rooms_Score__c = score.roomScore;
-                    existing.Area_Score__c = score.areaScore;
-                    existing.Features_Score__c = score.featureScore;
+    // UPDATE ONLY
+    if (score.total < 60) {
+        delete existing;
+    } else {
 
-                    toUpdate.add(existing);
+        existing.Match_Score__c = score.total;
+        existing.Budget_Score__c = score.budgetScore;
+        existing.Location_Score__c = score.locationScore;
+        existing.Type_Score__c = score.typeScore;
+        existing.Rooms_Score__c = score.roomScore;
+        existing.Area_Score__c = score.areaScore;
+        existing.Features_Score__c = score.featureScore;
 
-                }
-                // =========================
-                // INSERT NEW
-                // =========================
-                else if (score.total >= 60) {
+        existing.Status__c = 'Matched';
+        toUpdate.add(existing);
+    }
 
-                    toInsert.add(new Property_Match__c(
-                        Buyer__c = buyerId,
-                        Property__c = prop.Id,
+} else if (score.total >= 60) {
 
-                        Match_Score__c = score.total,
-
-                        Budget_Score__c = score.budgetScore,
-                        Location_Score__c = score.locationScore,
-                        Type_Score__c = score.typeScore,
-                        Rooms_Score__c = score.roomScore,
-                        Area_Score__c = score.areaScore,
-                        Features_Score__c = score.featureScore,
-
-                        Status__c = 'New'
-                    ));
-                }
+    // INSERT ONLY IF NOT EXISTS
+    toInsert.add(new Property_Match__c(
+        Buyer__c = buyerId,
+        Property__c = prop.Id,
+        Match_Score__c = score.total,
+        Budget_Score__c = score.budgetScore,
+        Location_Score__c = score.locationScore,
+        Type_Score__c = score.typeScore,
+        Rooms_Score__c = score.roomScore,
+        Area_Score__c = score.areaScore,
+        Features_Score__c = score.featureScore,
+        Status__c = 'Matched'
+    ));
+}
             }
         }
 
@@ -287,61 +290,117 @@ public with sharing class PropertyMatchingService {
         return dto;
     }
 
+public static void removeMatchesForSoldProperties(Set<Id> propertyIds) {
+
+    if (propertyIds == null || propertyIds.isEmpty()) return;
+
+    List<Property_Match__c> matchesToDelete = [
+        SELECT Id
+        FROM Property_Match__c
+        WHERE Property__c IN :propertyIds
+    ];
+
+    if (!matchesToDelete.isEmpty()) {
+        delete matchesToDelete;
+    }
+}
     // =========================
     // PROPERTY → BUYER FLOW
     // =========================
-    public static void matchPropertyToBuyers(Set<Id> propertyIds) {
+   public static void matchPropertyToBuyers(Set<Id> propertyIds) {
 
-        if (propertyIds == null || propertyIds.isEmpty()) return;
+    if (propertyIds == null || propertyIds.isEmpty()) return;
 
-        List<Property__c> properties = [
-            SELECT Id, Asking_Price__c, City__c,
-                   PropertyType__c, Bedrooms__c,
-                   Neighborhood__c, Area__c,
-                   Features__c, School_District__c
-            FROM Property__c
-            WHERE Id IN :propertyIds
-        ];
+    List<Property__c> properties = [
+        SELECT Id, Asking_Price__c, City__c,
+               PropertyType__c, Bedrooms__c,
+               Neighborhood__c, Area__c,
+               Features__c, School_District__c
+        FROM Property__c
+        WHERE Id IN :propertyIds
+    ];
 
-        Map<Id, Buyer_Preference__c> prefs = new Map<Id, Buyer_Preference__c>();
+    Map<Id, Buyer_Preference__c> prefs = new Map<Id, Buyer_Preference__c>();
 
-        for (Buyer_Preference__c p : [
-            SELECT Buyer__c, Min_Budget__c, Max_Budget__c,
-                   Preferred_City__c, Property_Type__c,
-                   Min_Bedrooms__c, Neighborhoods__c,
-                   Min_Area__c, Must_Have_Features__c,
-                   Alternative_Types__c, School_Preference__c
-            FROM Buyer_Preference__c
-            WHERE Buyer__c IN (
-                SELECT Id FROM Buyer__c WHERE Status__c = 'Active'
-            )
-        ]) {
-            prefs.put(p.Buyer__c, p);
-        }
+    for (Buyer_Preference__c p : [
+        SELECT Buyer__c, Min_Budget__c, Max_Budget__c,
+               Preferred_City__c, Property_Type__c,
+               Min_Bedrooms__c, Neighborhoods__c,
+               Min_Area__c, Must_Have_Features__c,
+               Alternative_Types__c, School_Preference__c
+        FROM Buyer_Preference__c
+        WHERE Buyer__c IN (
+            SELECT Id FROM Buyer__c WHERE Status__c = 'Active'
+        )
+    ]) {
+        prefs.put(p.Buyer__c, p);
+    }
 
-        List<Property_Match__c> toInsert = new List<Property_Match__c>();
+    // =========================
+    // 🔥 EXISTING MATCH MAP (CRITICAL FIX)
+    // =========================
+    Map<String, Property_Match__c> existingMap = new Map<String, Property_Match__c>();
 
-        for (Id buyerId : prefs.keySet()) {
+    for (Property_Match__c m : [
+        SELECT Id, Buyer__c, Property__c, Match_Score__c
+        FROM Property_Match__c
+        WHERE Property__c IN :propertyIds
+    ]) {
+        String key = m.Buyer__c + '-' + m.Property__c;
+        existingMap.put(key, m);
+    }
 
-            Buyer_Preference__c pref = prefs.get(buyerId);
-            if (pref == null) continue;
+    List<Property_Match__c> toInsert = new List<Property_Match__c>();
+    List<Property_Match__c> toUpdate = new List<Property_Match__c>();
+    List<Property_Match__c> toDelete = new List<Property_Match__c>();
 
-            for (Property__c prop : properties) {
+    // =========================
+    // MAIN LOOP
+    // =========================
+    for (Id buyerId : prefs.keySet()) {
 
-                ScoreDTO score = calculateMatchScore(pref, prop);
+        Buyer_Preference__c pref = prefs.get(buyerId);
+        if (pref == null) continue;
 
-                if (score.total >= 60) {
+        for (Property__c prop : properties) {
 
-                    toInsert.add(new Property_Match__c(
-                        Buyer__c = buyerId,
-                        Property__c = prop.Id,
-                        Match_Score__c = score.total,
-                        Status__c = 'New'
-                    ));
-                }
+            ScoreDTO score = calculateMatchScore(pref, prop);
+
+            String key = buyerId + '-' + prop.Id;
+            Property_Match__c existing = existingMap.get(key);
+
+            // ❌ BELOW 60 → DELETE IF EXISTS
+            if (existing != null && score.total < 60) {
+                toDelete.add(existing);
+                continue;
+            }
+
+            // 🔄 EXISTS → UPDATE
+            if (existing != null) {
+
+                existing.Match_Score__c = score.total;
+                existing.Status__c = 'Matched';
+
+                toUpdate.add(existing);
+            }
+            // ➕ NOT EXISTS → INSERT
+            else if (score.total >= 60) {
+
+                toInsert.add(new Property_Match__c(
+                    Buyer__c = buyerId,
+                    Property__c = prop.Id,
+                    Match_Score__c = score.total,
+                    Status__c = 'Matched'
+                ));
             }
         }
-
-        if (!toInsert.isEmpty()) insert toInsert;
     }
+
+    // =========================
+    // DML (SAFE ORDER)
+    // =========================
+    if (!toDelete.isEmpty()) delete toDelete;
+    if (!toInsert.isEmpty()) insert toInsert;
+    if (!toUpdate.isEmpty()) update toUpdate;
+}
 }
