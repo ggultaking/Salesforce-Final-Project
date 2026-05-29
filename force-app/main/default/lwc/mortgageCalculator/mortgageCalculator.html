@@ -1,111 +1,133 @@
 <template>
-<lightning-card title="Mortgage Engine">
+<lightning-card>
 
-<lightning-tabset>
+    <div class="layout">
 
-    <!-- SUMMARY -->
-    <lightning-tab label="Summary">
-        <p>Monthly: {monthlyPayment}</p>
-        <p>Principal: {principal}</p>
-        <p>Interest: {interest}</p>
-        <p>LTV: {ltv}%</p>
-    </lightning-tab>
+        <!-- ================= MODAL BAŞLIK ================= -->
+        <div class="modal-heading">Mortgage Calculator</div>
 
-    <!-- AMORTIZATION TABLE -->
-    <lightning-tab label="Amortization">
+        <!-- ================= ÖZET KARTLAR ================= -->
+        <div class="summary-grid">
 
-        <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+            <div class="card primary">
+                <div class="card-label">Monthly Payment</div>
+                <div class="card-value">{monthlyPayment}</div>
+            </div>
 
-            <thead>
-                <tr>
-                    <th>Month</th>
-                    <th>Payment</th>
-                    <th>Interest</th>
-                    <th>Principal</th>
-                    <th>Balance</th>
-                </tr>
-            </thead>
+            <div class="card">
+                <div class="card-label">Principal</div>
+                <div class="card-value">{principal}</div>
+            </div>
 
-            <tbody>
-                <template for:each={amortization} for:item="a">
-                    <tr key={a.month}>
-                        <td>{a.month}</td>
-                        <td>{a.payment}</td>
-                        <td>{a.interest}</td>
-                        <td>{a.principal}</td>
-                        <td>{a.balance}</td>
-                    </tr>
-                </template>
-            </tbody>
+            <div class="card">
+                <div class="card-label">Total Interest</div>
+                <div class="card-value">{interest}</div>
+            </div>
 
-        </table>
+            <div class="card ltv">
+                <div class="card-label">LTV</div>
+                <div class="card-value">{ltv}%</div>
+            </div>
 
-    </lightning-tab>
+        </div>
 
-    <!-- AFFORDABILITY -->
-    <lightning-tab label="Affordability">
+        <!-- ================= GİRİŞ PANEL ================= -->
+        <div class="panel">
 
-        <lightning-input
-            type="number"
-            name="income"
-            label="Income"
-            onchange={handleChange}>
-        </lightning-input>
+            <div class="panel-title">Loan Details</div>
 
-        <lightning-input
-            type="number"
-            name="debts"
-            label="Debts"
-            onchange={handleChange}>
-        </lightning-input>
+            <div class="input-grid">
+                <lightning-input name="homePrice"          label="Home Price ($)"    type="number" value={homePrice}          onchange={handleInput}></lightning-input>
+                <lightning-input name="downPaymentPercent" label="Down Payment (%)"  type="number" value={downPaymentPercent} onchange={handleInput}></lightning-input>
+                <lightning-input name="interestRate"       label="Interest Rate (%)" type="number" value={interestRate}       onchange={handleInput}></lightning-input>
+                <lightning-input name="loanTerm"           label="Loan Term (Years)" type="number" value={loanTerm}           onchange={handleInput}></lightning-input>
+            </div>
 
-        <lightning-button
-            label="Calculate Affordability"
-            onclick={calculateAffordability}>
-        </lightning-button>
+            <lightning-button class="calc-btn" label="Calculate" variant="brand" onclick={calculate}></lightning-button>
 
-        <p>Max Home Price: {affordable}</p>
+        </div>
 
-        <lightning-button
-            label="Apply Mortgage"
-            variant="brand"
-            onclick={applyMortgage}>
-        </lightning-button>
+        <!-- ================= AMORTİZASYON TABLOSU ================= -->
+        <div class="panel">
 
-    </lightning-tab>
+            <div class="table-header-row">
+                <div class="panel-title">Amortization Schedule</div>
+                <lightning-button
+                    class="export-btn"
+                    label="Export to Excel"
+                    variant="neutral"
+                    onclick={exportToExcel}>
+                </lightning-button>
+            </div>
 
-    <!-- CHART -->
-    <lightning-tab label="Chart">
+            <div class="table-wrapper">
+                <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th scope="col"><div class="slds-truncate">Month</div></th>
+                            <th scope="col"><div class="slds-truncate">Payment</div></th>
+                            <th scope="col"><div class="slds-truncate">Interest</div></th>
+                            <th scope="col"><div class="slds-truncate">Principal</div></th>
+                            <th scope="col"><div class="slds-truncate">Balance</div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={amortization} for:item="a">
+                            <tr key={a.month}>
+                                <td>{a.month}</td>
+                                <td>{a.payment}</td>
+                                <td>{a.interest}</td>
+                                <td>{a.principal}</td>
+                                <td>{a.balance}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
 
-        <div class="chart-wrapper">
+        </div>
 
-            <template for:each={amortization} for:item="a">
+        <!-- ================= AFFORDABILITY ================= -->
+        <div class="panel">
 
-                <div key={a.month} class="chart-row">
+            <div class="panel-title">Affordability Engine</div>
 
-                    <div class="month">Month {a.month}</div>
-
-                    <div class="bar-container">
-
-                        <div class="principal-bar"
-                             style={a.principalStyle}>
-                        </div>
-
-                        <div class="interest-bar"
-                             style={a.interestStyle}>
-                        </div>
-
-                    </div>
-
+            <div class="input-grid">
+                <div class="afford-input green-bg">
+                    <lightning-input name="income" label="Annual Income" type="number" onchange={handleInput}></lightning-input>
                 </div>
+                <div class="afford-input red-bg">
+                    <lightning-input name="debts" label="Monthly Debts" type="number" onchange={handleInput}></lightning-input>
+                </div>
+            </div>
 
+            <lightning-button label="Calculate Affordability" onclick={calculateAffordability}></lightning-button>
+
+            <template if:true={showAffordability}>
+                <div class="affordable-card">
+                    <div class="affordable-label">Max Affordable Home</div>
+                    <div class="affordable-value">{affordable}</div>
+                </div>
             </template>
 
         </div>
 
-    </lightning-tab>
+        <!-- ================= HATA / BAŞARI MESAJI ================= -->
+        <template if:true={hasApplyError}>
+            <div class="apply-error">Mortgage application can not be created</div>
+        </template>
 
-</lightning-tabset>
+        <template if:true={applySuccess}>
+            <div class="apply-success">✓ Mortgage application is successfully created</div>
+        </template>
+
+        <!-- ================= ALT BUTON SATIRI ================= -->
+      <div class="bottom-actions">
+    <button class="btn-close" onclick={handleClose}>Close</button>
+    <button class="btn-apply" onclick={applyMortgage} disabled={isApplying}>Apply Mortgage</button>
+</div>
+
+    </div>
 
 </lightning-card>
 </template>

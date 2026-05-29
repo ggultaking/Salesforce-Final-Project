@@ -1,44 +1,203 @@
 <template>
-    <lightning-card title="Transaction Pipeline">
+    <div class="pipeline-root">
 
-        <!-- FILTER -->
-        <lightning-input
-            type="text"
-            label="Search Address"
-            onchange={handleSearch}>
-        </lightning-input>
+        <!-- HEADER BAR -->
+        <div class="header-bar">
 
-        <div class="board">
+            <div class="header-left">
+                <div class="header-logo">
+                    <lightning-icon icon-name="standard:opportunity" size="small"></lightning-icon>
+                </div>
+                <div>
+                    <h1 class="header-title">Transaction Pipeline</h1>
+                </div>
+            </div>
 
-            <!-- SAFE LOOP (NO COMPUTED ACCESS) -->
-            <template for:each={groupedList} for:item="stageGroup">
+            <div class="header-stats">
+                <div class="stat-pill">
+                    <span class="stat-label">Pipeline Dəyəri</span>
+                    <span class="stat-value">{pipelineValueFormatted}</span>
+                </div>
+                <div class="stat-pill accent">
+                    <span class="stat-label">Komissiya Est.</span>
+                    <span class="stat-value">{commissionFormatted}</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Aktiv Əqd</span>
+                    <span class="stat-value">{activeDealCount}</span>
+                </div>
+            </div>
 
-                <div key={stageGroup.stage}
-                     class="column"
-                     data-stage={stageGroup.stage}
-                     ondrop={drop}
-                     ondragover={allowDrop}>
+            <div class="header-actions">
+                <lightning-input
+                    type="search"
+                    placeholder="Ünvanı axtar…"
+                    onchange={handleSearch}
+                    class="search-input">
+                </lightning-input>
+            </div>
 
-                    <h3>{stageGroup.stage}</h3>
+        </div>
 
-                    <template for:each={stageGroup.items} for:item="t">
+        <!-- FILTER RIBBON -->
+        <div class="filter-ribbon">
 
-                        <div key={t.Id}
-                             class={t.cardClass}
-                             draggable="true"
-                             data-id={t.Id}
-                             ondragstart={dragStart}
-                             onclick={openDetails}>
+            <!-- Agent filter — only rendered when at least one agent exists in data -->
+            <template if:true={showAgentFilter}>
+                <div class="filter-group">
+                    <label class="filter-label">Agent</label>
+                    <lightning-combobox
+                        options={agentOptions}
+                        value={selectedAgent}
+                        placeholder="Bütün agentlər"
+                        onchange={handleAgentFilter}>
+                    </lightning-combobox>
+                </div>
+            </template>
 
-                            <p>{t.Property__r.Address__c}</p>
-                            <p>{t.Buyer__r.Name}</p>
-                            <p>${t.Offer__r.Offer_Amount__c}</p>
+            <!--
+                Date inputs: onblur + onchange combo keeps the picker stable.
+                The JS handler debounces the state update so the native calendar
+                widget doesn't scroll/collapse mid-selection.
+            -->
+            <div class="filter-group">
+                <label class="filter-label">Bağlanma (başlanğıc)</label>
+                <lightning-input
+                    type="date"
+                    value={closeDateFrom}
+                    onchange={handleCloseDateFrom}>
+                </lightning-input>
+            </div>
 
-                            <p>⏳ {t.daysLeft} days left</p>
+            <div class="filter-group">
+                <label class="filter-label">Bağlanma (son)</label>
+                <lightning-input
+                    type="date"
+                    value={closeDateTo}
+                    onchange={handleCloseDateTo}>
+                </lightning-input>
+            </div>
 
+            <div class="filter-group">
+                <label class="filter-label">Min Qiymət</label>
+                <lightning-input
+                    type="number"
+                    formatter="currency"
+                    value={minPrice}
+                    onchange={handleMinPrice}>
+                </lightning-input>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Maks Qiymət</label>
+                <lightning-input
+                    type="number"
+                    formatter="currency"
+                    value={maxPrice}
+                    onchange={handleMaxPrice}>
+                </lightning-input>
+            </div>
+
+            <div class="filter-group filter-group--reset">
+                <lightning-button
+                    label="Filtrləri sıfırla"
+                    icon-name="utility:undo"
+                    onclick={resetFilters}>
+                </lightning-button>
+            </div>
+
+        </div>
+
+        <!-- LOADING -->
+        <template if:true={isLoading}>
+            <div class="loading-overlay">
+                <lightning-spinner alternative-text="Pipeline yüklənir…" size="medium"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- KANBAN BOARD -->
+        <div class="kanban-board">
+
+            <template for:each={groupedList} for:item="group">
+
+                <div key={group.stage}
+                     class="kanban-column"
+                     data-stage={group.stage}
+                     ondragover={allowDrop}
+                     ondrop={drop}>
+
+                    <div class={group.headerClass}>
+                        <div class="col-header-left">
+                            <span class="col-stage-name">{group.stage}</span>
+                            <span class="col-count-badge">{group.count}</span>
                         </div>
+                        <span class="col-total">{group.totalFormatted}</span>
+                    </div>
 
-                    </template>
+                    <div class="cards-container">
+
+                        <template for:each={group.items} for:item="t">
+
+                            <div key={t.Id}
+                                 class={t.cardClass}
+                                 draggable="true"
+                                 data-id={t.Id}
+                                 ondragstart={dragStart}
+                                 onclick={openDetails}>
+
+                                <div class={t.urgencyStripe}></div>
+
+                                <div class="card-header">
+                                    <span class="card-address">{t.Property__r.Address__c}</span>
+                                    <span class={t.urgencyBadgeClass}>{t.daysLeftLabel}</span>
+                                </div>
+
+                                <div class="card-buyer">
+                                    <div class="avatar">{t.buyerInitials}</div>
+                                    <span class="card-buyer-name">{t.Buyer__r.Name}</span>
+                                </div>
+
+                                <div class="card-price">{t.salePriceFormatted}</div>
+
+                                <div class="agent-row">
+                                    <div class="agent-chip">
+                                        <div class="agent-avatar listing">{t.listingAgentInitials}</div>
+                                        <span class="agent-label">Listing</span>
+                                    </div>
+                                    <div class="agent-chip">
+                                        <div class="agent-avatar buying">{t.buyingAgentInitials}</div>
+                                        <span class="agent-label">Buying</span>
+                                    </div>
+                                </div>
+
+                                <div class="commission-hover-badge">
+                                    <span class="commission-badge-label">Est. Komissiya</span>
+                                    <span class="commission-badge-value">{t.commissionFormatted}</span>
+                                </div>
+
+                                <div class="card-footer">
+                                    <span class="footer-item">
+                                        <lightning-icon icon-name="utility:clock" size="xx-small"></lightning-icon>
+                                        {t.daysInStage}g mərhələdə
+                                    </span>
+                                    <span class="footer-item">
+                                        <lightning-icon icon-name="utility:date_time" size="xx-small"></lightning-icon>
+                                        Bağlanır {t.estClosingFormatted}
+                                    </span>
+                                </div>
+
+                            </div>
+
+                        </template>
+
+                        <template if:true={group.isEmpty}>
+                            <div class="empty-column">
+                                <lightning-icon icon-name="utility:drag_and_drop" size="small"></lightning-icon>
+                                <p>Kartları bura sürükləyin</p>
+                            </div>
+                        </template>
+
+                    </div>
 
                 </div>
 
@@ -48,20 +207,158 @@
 
         <!-- SIDE PANEL -->
         <template if:true={selectedTransaction}>
-            <div class="sidepanel">
 
-                <button onclick={closePanel}>X</button>
+            <div class="side-overlay" onclick={closePanel}></div>
 
-                <h2>Transaction Details</h2>
+            <div class="side-panel">
 
-                <p>{selectedTransaction.Property__r.Address__c}</p>
-                <p>{selectedTransaction.Buyer__r.Name}</p>
-                <p>Status: {selectedTransaction.Status__c}</p>
-                <p>Sale Price: ${selectedTransaction.Sale_Price__c}</p>
-                <p>Closing Date: {selectedTransaction.Est_Closing_Date__c}</p>
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">{selectedTransaction.Property__r.Address__c}</h2>
+                        <p class="panel-sub">{selectedTransaction.Buyer__r.Name}</p>
+                    </div>
+                    <button class="panel-close" onclick={closePanel}>
+                        <lightning-icon icon-name="utility:close" size="x-small"></lightning-icon>
+                    </button>
+                </div>
+
+                <div class="stage-progress">
+                    <template for:each={stageSteps} for:item="step">
+                        <div key={step.stage} class={step.stepClass}>
+                            <div class="step-dot"></div>
+                            <span class="step-label">{step.stage}</span>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="panel-section">
+                    <h3 class="section-title">Əqd Təfərrüatları</h3>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Satış Qiyməti</span>
+                            <span class="detail-value highlight">{selectedTransaction.salePriceFormatted}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Status</span>
+                            <span class={selectedTransaction.statusBadgeClass}>{selectedTransaction.Status__c}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Est. Bağlanma</span>
+                            <span class="detail-value">{selectedTransaction.estClosingFormatted}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Mərhələdə Günlər</span>
+                            <span class="detail-value">{selectedTransaction.daysInStage} gün</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Əmanət No.</span>
+                            <span class="detail-value">{selectedTransaction.Escrow_Number__c}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">İpoteka Statusu</span>
+                            <span class={selectedTransaction.mortgageBadgeClass}>{selectedTransaction.Mortgage_Status__c}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Notariat Şirkəti</span>
+                            <span class="detail-value">{selectedTransaction.Title_Company__c}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Mərhələ Müddəti</span>
+                            <span class="detail-value">{selectedTransaction.stageDurationLabel}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3 class="section-title">Əsas Tarixlər</h3>
+                    <div class="milestone-list">
+                        <div class="milestone-item">
+                            <div class={selectedTransaction.contractMilestoneClass}></div>
+                            <div class="milestone-info">
+                                <span class="milestone-name">Müqavilə İmzalandı</span>
+                                <span class="milestone-date">{selectedTransaction.Contract_Date__c}</span>
+                            </div>
+                        </div>
+                        <div class="milestone-item">
+                            <div class={selectedTransaction.inspectionMilestoneClass}></div>
+                            <div class="milestone-info">
+                                <span class="milestone-name">Yoxlama</span>
+                                <span class="milestone-date">{selectedTransaction.Inspection_Date__c}</span>
+                            </div>
+                        </div>
+                        <div class="milestone-item">
+                            <div class={selectedTransaction.appraisalMilestoneClass}></div>
+                            <div class="milestone-info">
+                                <span class="milestone-name">Qiymətləndirmə</span>
+                                <span class="milestone-date">{selectedTransaction.Appraisal_Date__c}</span>
+                            </div>
+                        </div>
+                        <div class="milestone-item">
+                            <div class={selectedTransaction.closingMilestoneClass}></div>
+                            <div class="milestone-info">
+                                <span class="milestone-name">Bağlanma Tarixi</span>
+                                <span class="milestone-date">{selectedTransaction.Actual_Closing_Date__c}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3 class="section-title">Komissiya Bölgüsü</h3>
+                    <div class="commission-panel">
+
+                        <div class="commission-row">
+                            <div class="commission-agent-info">
+                                <div class="agent-avatar listing sm">{selectedTransaction.listingAgentInitials}</div>
+                                <div>
+                                    <span class="commission-agent-name">{selectedTransaction.Listing_Agent__r.Name}</span>
+                                    <span class="commission-role">Listing Agent · 3%</span>
+                                </div>
+                            </div>
+                            <div class="commission-right">
+                                <span class="commission-amount">{selectedTransaction.listingCommissionFormatted}</span>
+                                <span class={selectedTransaction.listingCommissionStatusClass}>{selectedTransaction.Listing_Commission_Status__c}</span>
+                            </div>
+                        </div>
+
+                        <div class="commission-row">
+                            <div class="commission-agent-info">
+                                <div class="agent-avatar buying sm">{selectedTransaction.buyingAgentInitials}</div>
+                                <div>
+                                    <span class="commission-agent-name">{selectedTransaction.Buying_Agent__r.Name}</span>
+                                    <span class="commission-role">Buying Agent · 3%</span>
+                                </div>
+                            </div>
+                            <div class="commission-right">
+                                <span class="commission-amount">{selectedTransaction.buyingCommissionFormatted}</span>
+                                <span class={selectedTransaction.buyingCommissionStatusClass}>{selectedTransaction.Buying_Commission_Status__c}</span>
+                            </div>
+                        </div>
+
+                        <div class="commission-total-row">
+                            <span>Ümumi Komissiya</span>
+                            <span class="commission-total-value">{selectedTransaction.totalCommissionFormatted}</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <template if:false={selectedTransaction.isClosed}>
+                    <div class="panel-section">
+                        <lightning-button
+                            variant="brand"
+                            label={selectedTransaction.nextStageLabel}
+                            icon-name="utility:forward"
+                            icon-position="right"
+                            data-id={selectedTransaction.Id}
+                            onclick={advanceFromPanel}>
+                        </lightning-button>
+                    </div>
+                </template>
 
             </div>
+
         </template>
 
-    </lightning-card>
+    </div>
 </template>

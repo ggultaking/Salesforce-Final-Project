@@ -1,148 +1,511 @@
 <template>
-    <lightning-card title="Property Matches">
+<lightning-card title="Property Match Dashboard">
 
-        <!-- LOADING -->
-        <template if:true={isLoading}>
-            <lightning-spinner alternative-text="Loading"></lightning-spinner>
-        </template>
+    <div class="container">
 
-        <!-- FILTER BAR -->
-        <div class="slds-grid slds-wrap slds-p-around_small">
-
-            <div class="slds-col slds-size_1-of-4">
-                <lightning-input type="number" label="Min Price" onchange={handleMinPrice}></lightning-input>
+        <!-- STATS -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-title">Total</div>
+                <div class="stat-value">{totalMatches}</div>
             </div>
-
-            <div class="slds-col slds-size_1-of-4">
-                <lightning-input type="number" label="Max Price" onchange={handleMaxPrice}></lightning-input>
+            <div class="stat-card">
+                <div class="stat-title">Hot</div>
+                <div class="stat-value">{hotCount}</div>
             </div>
-
-            <div class="slds-col slds-size_1-of-4">
-                <lightning-input type="number" label="Min Score" onchange={handleMinScore}></lightning-input>
+            <div class="stat-card">
+                <div class="stat-title">Avg Score</div>
+                <div class="stat-value">{avgScore}%</div>
             </div>
-
-            <!-- <div class="slds-col slds-size_1-of-4">
-                <lightning-input type="checkbox" label="Hot Only" onchange={handleHotOnly}></lightning-input>
-            </div> -->
-
+            <div class="stat-card">
+                <div class="stat-title">Viewed</div>
+                <div class="stat-value">{totalViewed}</div>
+            </div>
         </div>
 
-        <lightning-button
-            label="Refresh Matches"
-            class="slds-m-left_small"
-            onclick={handleRefresh}>
-        </lightning-button>
+        <div class="page-layout">
 
-        <!-- GRID -->
-        <div class="slds-grid slds-wrap slds-m-top_small">
+            <!-- FILTER PANEL -->
+            <div class="left-panel">
 
-            <template for:each={matches} for:item="item">
+                <div class="filter-title">Filters</div>
 
-                <div key={item.propertyMatchId}
-                     class="card slds-col slds-size_1-of-3">
-
-                    <div class={item.borderClass}>
-
-                        <!-- GAP 10 — PROPERTY IMAGE -->
-                        <img class="image"
-                             src={item.imageUrl}
-                             loading="lazy"/>
-
-                        <div class="title">{item.address}</div>
-                        <div>${item.price}</div>
-
-                        <div>
-                            {item.beds} bed | {item.baths} bath | {item.area} sqft
+                <div class="filter-item">
+                    <label>Price Range</label>
+                    <div class="price-input-group">
+                        <div class="price-box">
+                            <label>Min Price</label>
+                            <lightning-input
+                                type="number"
+                                value={minPrice}
+                                onchange={handleMinPrice}>
+                            </lightning-input>
                         </div>
-
-                        <div>DOM: {item.daysOnMarket}</div>
-
-                        <!-- SCORE -->
-                        <div class="score">{item.matchScore}%</div>
-                           <p>Viewed {item.viewedCount}x</p>
-                        <!-- GAP 7 — PROGRESS BARS -->
-                        <div class="progress-section">
-
-                            <label>Budget</label>
-                            <lightning-progress-bar value={item.breakdown.budgetScore}></lightning-progress-bar>
-
-                            <label>Location</label>
-                            <lightning-progress-bar value={item.breakdown.locationScore}></lightning-progress-bar>
-
-                            <label>Type</label>
-                            <lightning-progress-bar value={item.breakdown.typeScore}></lightning-progress-bar>
-
-                            <label>Rooms</label>
-                            <lightning-progress-bar value={item.breakdown.roomsScore}></lightning-progress-bar>
-
-                            <label>Area</label>
-                            <lightning-progress-bar value={item.breakdown.areaScore}></lightning-progress-bar>
-
-                            <label>Features</label>
-                            <lightning-progress-bar value={item.breakdown.featuresScore}></lightning-progress-bar>
-
+                        <div class="price-box">
+                            <label>Max Price</label>
+                            <lightning-input
+                                type="number"
+                                value={maxPrice}
+                                onchange={handleMaxPrice}>
+                            </lightning-input>
                         </div>
+                    </div>
 
-                        <!-- ACTIONS -->
-                        <div class="actions">
-
-                            <lightning-button
-                                label="Schedule"
-                                data-id={item.propertyId}
-                                onclick={openSchedule}>
-                            </lightning-button>
-
-                            <!-- GAP 8 -->
-                            <lightning-button
-                                label="Map"
-                                data-id={item.propertyId}
-                                onclick={openMap}>
-                            </lightning-button>
-
-                            <lightning-button
-                                label="Not Interested"
-                                data-id={item.propertyMatchId}
-                                onclick={markNotInterested}>
-                            </lightning-button>
-
+                    <div class="range-wrapper">
+                        <div class="slider-row">
+                            <span class="slider-label">Min</span>
+                            <input type="range" min="0" max="1000000"
+                                   value={minPrice} oninput={handleMinPrice} class="range"/>
                         </div>
-
+                        <div class="slider-row">
+                            <span class="slider-label">Max</span>
+                            <input type="range" min="0" max="1000000"
+                                   value={maxPrice} oninput={handleMaxPrice} class="range"/>
+                        </div>
                     </div>
                 </div>
 
-            </template>
+                <div class="filter-item">
+                    <label>Min Score</label>
+                    <lightning-slider min="0" max="100"
+                        value={minScore}
+                        onchange={handleMinScore}>
+                    </lightning-slider>
+                </div>
 
-        </div>
-
-        <!-- GAP 9 — SCHEDULE MODAL -->
-        <template if:true={showScheduleModal}>
-            <section class="modal">
-
-                <div class="modal-content">
-
-                    <h2>Schedule Viewing</h2>
-
-                    <lightning-input
-                        type="datetime-local"
-                        label="Select Date & Time"
-                        onchange={handleDateChange}>
+                <div class="filter-item toggle-row">
+                    <span>Hot Only</span>
+                    <lightning-input type="toggle"
+                        checked={hotOnly}
+                        onchange={handleHotOnly}>
                     </lightning-input>
+                </div>
 
-                    <div class="modal-actions">
+                <div class="filter-actions">
+                    <lightning-button label="Apply Filters" variant="brand"   onclick={applyFilters}></lightning-button>
+                    <lightning-button label="Reset Filters" variant="neutral" onclick={resetFilters}></lightning-button>
+                </div>
 
-                        <lightning-button label="Cancel" onclick={closeModal}></lightning-button>
+                <div class="show-hidden-wrapper">
+                    <lightning-button label="Show Hidden" variant="neutral" onclick={showHidden}></lightning-button>
+                </div>
 
-                        <lightning-button variant="brand"
-                                          label="Save"
-                                          onclick={saveSchedule}>
-                        </lightning-button>
+            </div>
 
+            <!-- RESULTS PANEL -->
+            <div class="right-panel">
+
+                <div class="card-grid">
+
+                    <template for:each={matches} for:item="item">
+
+                        <div key={item.propertyMatchId}
+                             class="card"
+                             data-property-id={item.propertyId}>
+
+                            <div class="card-header">
+                                <span class={item.interestClass}>
+                                    {item.interestLevel} Match
+                                </span>
+                                <span class="score-pill">
+                                    {item.matchScore}% Match
+                                </span>
+                            </div>
+
+                            <div class="image-wrapper"
+                                 data-propertyid={item.propertyId}
+                                 data-address={item.address}
+                                 onclick={openPhotoSlider}>
+                                <img class="image" src={item.imageUrl} alt="Property" />
+                                <div class="image-overlay">
+                                    <span class="image-overlay-text">View Photos</span>
+                                </div>
+                            </div>
+
+                            <div class="title">{item.address}</div>
+                            <div class="price">{item.price}</div>
+
+                            <div class="details-row">
+                                <span class="details-text">
+                                    DOM: {item.daysOnMarket} &bull; Viewed {item.viewedCount}
+                                </span>
+
+                                <template if:true={item.hasOffer}>
+                                    <button class="offer-count-badge"
+                                            data-propertyid={item.propertyId}
+                                            data-address={item.address}
+                                            onclick={openOfferKanban}>
+                                        <span class="offer-count-number">{item.offerCount}</span>
+                                        <span class="offer-count-label">Offers</span>
+                                    </button>
+                                </template>
+                            </div>
+
+                            <div class="breakdown-title">Match Breakdown</div>
+
+                            <div class="breakdown">
+                                <div class="b-row">
+                                    <span>Budget</span>
+                                    <div class="bar"><div style={item.budgetStyle}></div></div>
+                                    <span class="score-label">{item.breakdown.budgetScore}%</span>
+                                </div>
+                                <div class="b-row">
+                                    <span>Location</span>
+                                    <div class="bar"><div style={item.locationStyle}></div></div>
+                                    <span class="score-label">{item.breakdown.locationScore}%</span>
+                                </div>
+                                <div class="b-row">
+                                    <span>Type</span>
+                                    <div class="bar"><div style={item.typeStyle}></div></div>
+                                    <span class="score-label">{item.breakdown.typeScore}%</span>
+                                </div>
+                                <div class="b-row">
+                                    <span>Rooms</span>
+                                    <div class="bar"><div style={item.roomsStyle}></div></div>
+                                    <span class="score-label">{item.breakdown.roomsScore}%</span>
+                                </div>
+                                <div class="b-row">
+                                    <span>Area</span>
+                                    <div class="bar"><div style={item.areaStyle}></div></div>
+                                    <span class="score-label">{item.breakdown.areaScore}%</span>
+                                </div>
+                                <div class="b-row">
+                                    <span>Features</span>
+                                    <div class="bar"><div style={item.featuresStyle}></div></div>
+                                    <span class="score-label">{item.breakdown.featuresScore}%</span>
+                                </div>
+                            </div>
+
+                            <div class="offer-action-area">
+
+                                <template if:true={item.showOfferButton}>
+                                    <button class="offer-btn"
+                                            data-matchid={item.propertyMatchId}
+                                            data-propertyid={item.propertyId}
+                                            onclick={openOfferFlow}>
+                                        Make an Offer
+                                    </button>
+                                </template>
+
+                                <template if:true={item.showCounterOfferButton}>
+                                    <button class="counter-offer-btn"
+                                            data-matchid={item.propertyMatchId}
+                                            data-propertyid={item.propertyId}
+                                            onclick={openCounterOfferFlow}>
+                                        Counter Offer
+                                    </button>
+                                </template>
+
+                            </div>
+
+                            <div class="actions">
+                                <button class="action-btn map-btn"
+                                        data-propertyid={item.propertyId}
+                                        onclick={openMap}>
+                                    Map
+                                </button>
+                                <button class="action-btn mortgage-btn"
+                                        data-matchid={item.propertyMatchId}
+                                        onclick={openMortgage}>
+                                    Mortgage
+                                </button>
+                                <button class="action-btn schedule-btn"
+                                        data-matchid={item.propertyMatchId}
+                                        onclick={openSchedule}>
+                                    Schedule
+                                </button>
+                                <button class="action-btn danger-btn"
+                                        data-id={item.propertyMatchId}
+                                        onclick={markNotInterested}>
+                                    Not Interested
+                                </button>
+                            </div>
+
+                        </div>
+
+                    </template>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="bottom-bar">
+            <div class="info-card"><b>DOM</b> = Days on Market</div>
+            <div class="info-card"><b>Score</b> = Match Quality %</div>
+            <div class="info-card"><b>Hot</b> = 80%+ Match</div>
+        </div>
+
+    </div>
+
+    <!-- SCHEDULE MODAL -->
+    <template if:true={showScheduleModal}>
+        <section class="modal">
+            <div class="modal-backdrop" onclick={closeModal}></div>
+            <div class="modal-box schedule-modal">
+
+                <div class="schedule-modal-header">
+                    <div class="schedule-modal-header-left">
+                        <div class="schedule-modal-icon">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="schedule-modal-title">Schedule a Showing</div>
+                            <div class="schedule-modal-subtitle">Pick your preferred date, time &amp; duration</div>
+                        </div>
+                    </div>
+                    <button class="schedule-modal-close" onclick={closeModal}>&#10005;</button>
+                </div>
+
+                <div class="schedule-modal-body">
+
+                    <div class="schedule-dt-wrapper">
+                        <span class="schedule-dt-label">Date &amp; Time</span>
+                        <input class="schedule-dt-input"
+                               type="datetime-local"
+                               onchange={handleDateChange} />
+                    </div>
+
+                    <div>
+                        <span class="schedule-duration-label">Duration</span>
+                        <div class="schedule-duration-pills">
+                            <template for:each={durationPills} for:item="pill">
+                                <button key={pill.value}
+                                        class={pill.pillClass}
+                                        data-value={pill.value}
+                                        onclick={handleDurationPill}>
+                                    {pill.label}
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="schedule-info-strip">
+                        <svg class="schedule-info-icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span class="schedule-info-text">
+                            You will receive a confirmation once the agent approves the showing request.
+                        </span>
                     </div>
 
                 </div>
 
-            </section>
-        </template>
+                <div class="schedule-modal-footer">
+                    <button class="schedule-cancel-btn" onclick={closeModal}>Cancel</button>
+                    <button class="schedule-save-btn" onclick={saveSchedule}>
+                        <svg viewBox="0 0 24 24">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Confirm Showing
+                    </button>
+                </div>
 
-    </lightning-card>
+            </div>
+        </section>
+    </template>
+
+    <!-- MORTGAGE MODAL -->
+    <template if:true={showMortgageModal}>
+        <section class="modal">
+            <div class="modal-backdrop" onclick={closeMortgage}></div>
+            <div class="modal-box mortgage-modal">
+                <c-mortgage-calculator
+                    property-id={selectedPropertyId}
+                    buyer-id={recordId}
+                    initial-price={selectedPrice}
+                    onclose={closeMortgage}
+                    onmortgageapplied={handleMortgageApplied}>
+                </c-mortgage-calculator>
+            </div>
+        </section>
+    </template>
+
+    <!-- PHOTO SLIDER MODAL -->
+    <template if:true={showPhotoSlider}>
+        <section class="modal">
+            <div class="modal-backdrop" onclick={closePhotoSlider}></div>
+            <div class="modal-box slider-modal">
+                <div class="slider-header">
+                    <span class="slider-title">{sliderPropertyName}</span>
+                    <div class="slider-header-right">
+                        <span class="slider-counter">{sliderCounter}</span>
+                        <button class="slider-close" onclick={closePhotoSlider}>&#10005;</button>
+                    </div>
+                </div>
+                <div class="slider-body">
+                    <img class="slider-img" src={sliderCurrentPhoto} alt="Property photo" />
+
+                    <template if:true={sliderHasMultiple}>
+                        <button class="slider-arrow slider-arrow--prev" onclick={sliderPrev}>&#8249;</button>
+                        <button class="slider-arrow slider-arrow--next" onclick={sliderNext}>&#8250;</button>
+                    </template>
+                </div>
+
+                <template if:true={sliderHasMultiple}>
+                    <div class="slider-dots">
+                        <template for:each={sliderPhotos} for:item="photo">
+                            <button key={photo.index}
+                                    class={photo.dotClass}
+                                    data-index={photo.index}
+                                    onclick={sliderDotClick}>
+                            </button>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </section>
+    </template>
+
+    <!-- OFFER KANBAN MODAL -->
+    <template if:true={showOfferKanban}>
+        <section class="modal">
+            <div class="modal-backdrop" onclick={closeOfferKanban}></div>
+            <div class="modal-box kanban-modal">
+                <div class="kanban-header">
+                    <div class="kanban-header-left">
+                        <lightning-icon icon-name="standard:opportunity" size="small"></lightning-icon>
+                        <span class="kanban-title">Offers — {kanbanPropertyName}</span>
+                    </div>
+                    <button class="kanban-close" onclick={closeOfferKanban}>&#10005;</button>
+                </div>
+
+                <div class="kanban-body">
+
+                    <template if:false={kanbanOffers.length}>
+                        <div class="kanban-empty">No offers found for this property.</div>
+                    </template>
+
+                    <template if:true={kanbanOffers.length}>
+                        <div class="kanban-columns">
+
+                            <!-- SUBMITTED -->
+                            <div class="kanban-col">
+                                <div class="kanban-col-header submitted-header">Submitted</div>
+                                <div class="kanban-col-body">
+                                    <template for:each={kanbanOffers} for:item="o">
+                                        <template if:true={o.isSubmitted}>
+                                            <div key={o.Id} class={o.cardClass}>
+                                                <div class="koc-type-label">{o.typeLabel}</div>
+                                                <div class="koc-buyer">{o.buyerName}</div>
+                                                <div class="koc-amount">{o.amountFormatted}</div>
+                                                <div class="koc-date">{o.submittedDate}</div>
+                                                <span class={o.statusClass}>{o.Status__c}</span>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- ACTIVE / COUNTERED -->
+                            <div class="kanban-col">
+                                <div class="kanban-col-header active-header">Active / Countered</div>
+                                <div class="kanban-col-body">
+                                    <template for:each={kanbanOffers} for:item="o">
+                                        <template if:true={o.isActiveOrCountered}>
+                                            <div key={o.Id} class={o.cardClass}>
+                                                <div class="koc-type-label">{o.typeLabel}</div>
+                                                <div class="koc-buyer">{o.buyerName}</div>
+                                                <div class="koc-amount">{o.amountFormatted}</div>
+                                                <div class="koc-date">{o.submittedDate}</div>
+                                                <span class={o.statusClass}>{o.Status__c}</span>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- ACCEPTED -->
+                            <div class="kanban-col">
+                                <div class="kanban-col-header accepted-header">Accepted</div>
+                                <div class="kanban-col-body">
+                                    <template for:each={kanbanOffers} for:item="o">
+                                        <template if:true={o.isAccepted}>
+                                            <div key={o.Id} class={o.cardClass}>
+                                                <div class="koc-type-label">{o.typeLabel}</div>
+                                                <div class="koc-buyer">{o.buyerName}</div>
+                                                <div class="koc-amount">{o.amountFormatted}</div>
+                                                <div class="koc-date">{o.submittedDate}</div>
+                                                <span class={o.statusClass}>{o.Status__c}</span>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- CLOSED -->
+                            <div class="kanban-col">
+                                <div class="kanban-col-header closed-header">Closed</div>
+                                <div class="kanban-col-body">
+                                    <template for:each={kanbanOffers} for:item="o">
+                                        <template if:true={o.isClosed}>
+                                            <div key={o.Id} class={o.cardClass}>
+                                                <div class="koc-type-label">{o.typeLabel}</div>
+                                                <div class="koc-buyer">{o.buyerName}</div>
+                                                <div class="koc-amount">{o.amountFormatted}</div>
+                                                <div class="koc-date">{o.submittedDate}</div>
+                                                <span class={o.statusClass}>{o.Status__c}</span>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+
+                        </div>
+                    </template>
+
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- OFFER SCREEN FLOW MODAL -->
+    <template if:true={showOfferFlow}>
+        <section class="modal">
+            <div class="modal-backdrop" onclick={closeOfferFlow}></div>
+            <div class="modal-box flow-modal">
+                <div class="flow-modal-header">
+                    <span class="flow-modal-title">Make an Offer</span>
+                    <button class="flow-modal-close" onclick={closeOfferFlow}>&#10005;</button>
+                </div>
+                <div class="flow-modal-body">
+                    <lightning-flow
+                        flow-api-name="Offer_Submission"
+                        flow-input-variables={offerFlowInputVariables}
+                        onstatuschange={handleOfferFlowFinish}>
+                    </lightning-flow>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- COUNTER OFFER SCREEN FLOW MODAL -->
+    <template if:true={showCounterOfferFlow}>
+        <section class="modal">
+            <div class="modal-backdrop" onclick={closeCounterOfferFlow}></div>
+            <div class="modal-box flow-modal">
+                <div class="flow-modal-header">
+                    <span class="flow-modal-title">Counter Offer</span>
+                    <button class="flow-modal-close" onclick={closeCounterOfferFlow}>&#10005;</button>
+                </div>
+                <div class="flow-modal-body">
+                    <lightning-flow
+                        flow-api-name="Counter_Offer"
+                        flow-input-variables={counterOfferFlowInputVariables}
+                        onstatuschange={handleCounterOfferFlowFinish}>
+                    </lightning-flow>
+                </div>
+            </div>
+        </section>
+    </template>
+
+</lightning-card>
 </template>

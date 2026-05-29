@@ -27,7 +27,7 @@ public with sharing class PropertyMatchingService {
         if (buyerId == null) return;
         matchBuyerToProperties(new Set<Id>{ buyerId });
     }
-
+      
     // =========================
     // MAIN ENGINE
     // =========================

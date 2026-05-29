@@ -76,14 +76,14 @@ if (!matchesToClose.isEmpty()) {
 }
 
 List<Offer__c> offersToClose = [
-    SELECT Id
+    SELECT Id, Status__c
     FROM Offer__c
     WHERE Property__c IN :soldIds
-    AND Status__c != 'Closed'
+      AND Status__c NOT IN ('Accepted', 'Withdrawn', 'Rejected', 'Expired')
 ];
 
 for (Offer__c o : offersToClose) {
-    o.Status__c = 'Closed';
+    o.Status__c = 'Withdrawn'; // ✅
 }
 
 if (!offersToClose.isEmpty()) {
